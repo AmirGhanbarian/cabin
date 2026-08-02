@@ -4,6 +4,10 @@ export type Route =
   | { name: 'ideas' }
   | { name: 'blog' }
   | { name: 'blog-post'; slug: string }
+  | { name: 'shop' }
+  | { name: 'cart' }
+  | { name: 'checkout' }
+  | { name: 'payment-result'; status: 'success' | 'fail'; authority?: string }
   | { name: 'admin' };
 
 export function parseHash(hash: string): Route {
@@ -13,6 +17,11 @@ export function parseHash(hash: string): Route {
   if (clean === 'materials') return { name: 'materials' };
   if (clean === 'ideas') return { name: 'ideas' };
   if (clean === 'blog') return { name: 'blog' };
+  if (clean === 'shop') return { name: 'shop' };
+  if (clean === 'cart') return { name: 'cart' };
+  if (clean === 'checkout') return { name: 'checkout' };
+  if (clean.startsWith('payment/success')) return { name: 'payment-result', status: 'success', authority: clean.split('/')[2] };
+  if (clean.startsWith('payment/fail')) return { name: 'payment-result', status: 'fail', authority: clean.split('/')[2] };
   if (clean.startsWith('blog/')) return { name: 'blog-post', slug: clean.slice(5) };
 
   return { name: 'home' };
@@ -26,6 +35,10 @@ export function navigate(route: Route) {
     case 'ideas': hash = '#ideas'; break;
     case 'blog': hash = '#blog'; break;
     case 'blog-post': hash = `#blog/${route.slug}`; break;
+    case 'shop': hash = '#shop'; break;
+    case 'cart': hash = '#cart'; break;
+    case 'checkout': hash = '#checkout'; break;
+    case 'payment-result': hash = `#payment/${route.status}${route.authority ? `/${route.authority}` : ''}`; break;
     case 'admin': hash = '#admin'; break;
   }
   window.location.hash = hash;

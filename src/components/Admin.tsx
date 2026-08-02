@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import {
   Lock, Loader2, AlertCircle, LogOut, Phone, Mail, Calendar, Heart,
-  Plus, Trash2, Edit3, X, Check, Eye, EyeOff, Save,
+  Plus, Trash2, Edit3, X, Check, Eye, EyeOff, Save, Package, FolderTree, ShoppingCart, Bell,
 } from 'lucide-react';
-import { supabase, type Lead, type Material, type Idea, type BlogPost, type MaterialInsert, type IdeaInsert, type BlogPostInsert } from '@/lib/supabase';
+import { supabase, type Lead, type Material, type Idea, type BlogPost, type MaterialInsert, type IdeaInsert, type BlogPostInsert, type Product, type ProductInsert, type Category, type CategoryInsert, type Order, type OrderItem, type NotifyRequest } from '@/lib/supabase';
 import { useLang } from '@/lib/lang-context';
 
 type AuthState = 'loading' | 'unauthenticated' | 'authenticated';
-type AdminTab = 'leads' | 'materials' | 'ideas' | 'blog';
+type AdminTab = 'leads' | 'materials' | 'ideas' | 'blog' | 'products' | 'categories' | 'orders' | 'notify';
 
 export function Admin() {
   const { t, lang, toggleLang } = useLang();
@@ -42,6 +42,28 @@ export function Admin() {
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [showPostForm, setShowPostForm] = useState(false);
 
+  // Products
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showProductForm, setShowProductForm] = useState(false);
+
+  // Categories
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+
+  // Orders
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [orderItems, setOrderItems] = useState<Record<string, OrderItem[]>>({});
+
+  // Notify requests
+  const [notifyRequests, setNotifyRequests] = useState<NotifyRequest[]>([]);
+  const [notifyLoading, setNotifyLoading] = useState(false);
+  const [notifyProductNames, setNotifyProductNames] = useState<Record<string, string>>({});
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setAuthState(data.session ? 'authenticated' : 'unauthenticated');
@@ -58,6 +80,10 @@ export function Admin() {
     fetchMaterials();
     fetchIdeas();
     fetchPosts();
+    fetchProducts();
+    fetchCategories();
+    fetchOrders();
+    fetchNotifyRequests();
   }, [authState]);
 
   const fetchLeads = async () => {
@@ -86,6 +112,49 @@ export function Admin() {
     const { data } = await supabase.from('blog_posts').select('*').order('created_at', { ascending: false });
     if (data) setPosts(data as BlogPost[]);
     setPostsLoading(false);
+  };
+
+  const fetchProducts = async () => {
+    setProductsLoading(true);
+    const { data } = await supabase.from('products').select('*').order('sort_order', { ascending: true });
+    if (data) setProducts(data as Product[]);
+    setProductsLoading(false);
+  };
+
+  const fetchCategories = async () => {
+    const { data } = await supabase.from('categories').select('*').order('sort_order', { ascending: true });
+    if (data) setCategories(data as Category[]);
+  };
+
+  const fetchOrders = async () => {
+    setOrdersLoading(true);
+    const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+    if (data) setOrders(data as Order[]);
+    setOrdersLoading(false);
+  };
+
+  const fetchOrderItems = async (orderId: string) => {
+    if (orderItems[orderId]) return;
+    const { data } = await supabase.from('order_items').select('*').eq('order_id', orderId);
+    if (data) setOrderItems((prev) => ({ ...prev, [orderId]: data as OrderItem[] }));
+  };
+
+  const fetchNotifyRequests = async () => {
+    setNotifyLoading(true);
+    const { data } = await supabase.from('notify_requests').select('*').order('created_at', { ascending: false });
+    if (data) {
+      setNotifyRequests(data as NotifyRequest[]);
+      // Fetch product names
+      const names: Record<string, string> = {};
+      for (const nr of data as NotifyRequest[]) {
+        if (!names[nr.product_id]) {
+          const { data: prod } = await supabase.from('products').select('name_en').eq('id', nr.product_id).maybeSingle();
+          if (prod) names[nr.product_id] = (prod as { name_en: string }).name_en;
+        }
+      }
+      setNotifyProductNames(names);
+    }
+    setNotifyLoading(false);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -183,6 +252,53 @@ export function Admin() {
     fetchPosts();
   };
 
+  // Product handlers
+  const saveProduct = async (prod: ProductInsert, id?: string) => {
+    if (id) {
+      await supabase.from('products').update(prod).eq('id', id);
+    } else {
+      await supabase.from('products').insert(prod);
+    }
+    setShowProductForm(false);
+    setEditingProduct(null);
+    fetchProducts();
+  };
+
+  const deleteProduct = async (id: string) => {
+    if (!confirm('Delete this product?')) return;
+    await supabase.from('products').delete().eq('id', id);
+    fetchProducts();
+  };
+
+  // Category handlers
+  const saveCategory = async (cat: CategoryInsert, id?: string) => {
+    if (id) {
+      await supabase.from('categories').update(cat).eq('id', id);
+    } else {
+      await supabase.from('categories').insert(cat);
+    }
+    setShowCategoryForm(false);
+    setEditingCategory(null);
+    fetchCategories();
+  };
+
+  const deleteCategory = async (id: string) => {
+    if (!confirm('Delete this category?')) return;
+    await supabase.from('categories').delete().eq('id', id);
+    fetchCategories();
+  };
+
+  // Notify request handlers
+  const toggleNotifyHandled = async (nr: NotifyRequest) => {
+    await supabase.from('notify_requests').update({ handled: !nr.handled }).eq('id', nr.id);
+    fetchNotifyRequests();
+  };
+
+  const deleteNotifyRequest = async (id: string) => {
+    await supabase.from('notify_requests').delete().eq('id', id);
+    fetchNotifyRequests();
+  };
+
   if (authState === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink-950">
@@ -257,6 +373,10 @@ export function Admin() {
     { key: 'materials', label: t.materialsPage.title, count: materials.length },
     { key: 'ideas', label: t.nav.ideas, count: ideas.length },
     { key: 'blog', label: t.blogPage.title, count: posts.length },
+    { key: 'products', label: t.admin.products, count: products.length },
+    { key: 'categories', label: t.admin.categories, count: categories.length },
+    { key: 'orders', label: t.admin.orders, count: orders.length },
+    { key: 'notify', label: t.admin.notifyRequests, count: notifyRequests.length },
   ];
 
   return (
@@ -586,6 +706,247 @@ export function Admin() {
             )}
           </div>
         )}
+
+        {/* Products tab */}
+        {activeTab === 'products' && (
+          <div>
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="font-serif text-2xl font-bold text-ink-900">
+                {products.length} {t.admin.products}
+              </h2>
+              <button
+                onClick={() => { setEditingProduct(null); setShowProductForm(true); }}
+                className="flex items-center gap-2 rounded-full bg-brass-500 px-5 py-2.5 text-sm font-medium text-ink-900 transition-colors hover:bg-brass-400"
+              >
+                <Plus className="h-4 w-4" /> {t.admin.addProduct}
+              </button>
+            </div>
+
+            {productsLoading ? (
+              <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-brass-400" /></div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {products.map((prod) => (
+                  <div key={prod.id} className="overflow-hidden rounded-2xl border border-ink-100 bg-cream-50">
+                    <div className="aspect-square overflow-hidden">
+                      <img src={prod.image_url} alt={prod.name_en} className="h-full w-full object-cover" />
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-ink-400">{prod.code}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-xs ${prod.stock > 0 ? 'bg-sage-100 text-sage-600' : 'bg-red-50 text-red-500'}`}>
+                          {prod.stock > 0 ? `${t.admin.stock}: ${prod.stock}` : t.shop.outOfStock}
+                        </span>
+                      </div>
+                      <h3 className="mt-2 font-serif font-bold text-ink-900">{prod.name_en}</h3>
+                      <p className="mt-1 text-sm font-semibold text-brass-600">
+                        {new Intl.NumberFormat('en-US').format(prod.price)} Toman
+                      </p>
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          onClick={() => { setEditingProduct(prod); setShowProductForm(true); }}
+                          className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-ink-100 px-3 py-2 text-xs font-medium text-ink-700 transition-colors hover:bg-ink-200"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" /> Edit
+                        </button>
+                        <button
+                          onClick={() => deleteProduct(prod.id)}
+                          className="flex items-center justify-center rounded-full bg-red-50 px-3 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {showProductForm && (
+              <ProductForm
+                product={editingProduct}
+                categories={categories}
+                onSave={saveProduct}
+                onCancel={() => { setShowProductForm(false); setEditingProduct(null); }}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Categories tab */}
+        {activeTab === 'categories' && (
+          <div>
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="font-serif text-2xl font-bold text-ink-900">
+                {categories.length} {t.admin.categories}
+              </h2>
+              <button
+                onClick={() => { setEditingCategory(null); setShowCategoryForm(true); }}
+                className="flex items-center gap-2 rounded-full bg-brass-500 px-5 py-2.5 text-sm font-medium text-ink-900 transition-colors hover:bg-brass-400"
+              >
+                <Plus className="h-4 w-4" /> {t.admin.addCategory}
+              </button>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {categories.map((cat) => (
+                <div key={cat.id} className="rounded-2xl border border-ink-100 bg-cream-50 p-5">
+                  <h3 className="font-serif font-bold text-ink-900">{cat.name_en}</h3>
+                  <p className="mt-1 text-sm text-ink-500">{cat.name_fa}</p>
+                  <p className="mt-2 text-xs text-ink-400">Sort: {cat.sort_order}</p>
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      onClick={() => { setEditingCategory(cat); setShowCategoryForm(true); }}
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-ink-100 px-3 py-2 text-xs font-medium text-ink-700 transition-colors hover:bg-ink-200"
+                    >
+                      <Edit3 className="h-3.5 w-3.5" /> Edit
+                    </button>
+                    <button
+                      onClick={() => deleteCategory(cat.id)}
+                      className="flex items-center justify-center rounded-full bg-red-50 px-3 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {showCategoryForm && (
+              <CategoryForm
+                category={editingCategory}
+                onSave={saveCategory}
+                onCancel={() => { setShowCategoryForm(false); setEditingCategory(null); }}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Orders tab */}
+        {activeTab === 'orders' && (
+          <div>
+            <h2 className="mb-6 font-serif text-2xl font-bold text-ink-900">
+              {orders.length} {t.admin.orders}
+            </h2>
+
+            {ordersLoading ? (
+              <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-brass-400" /></div>
+            ) : orders.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-ink-200 py-20 text-center">
+                <p className="text-ink-400">{t.admin.noOrders}</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {orders.map((order) => (
+                  <div key={order.id} className="rounded-2xl border border-ink-100 bg-cream-50 p-5">
+                    <button
+                      onClick={() => {
+                        if (expandedOrder === order.id) {
+                          setExpandedOrder(null);
+                        } else {
+                          setExpandedOrder(order.id);
+                          fetchOrderItems(order.id);
+                        }
+                      }}
+                      className="flex w-full items-start justify-between gap-4 text-left"
+                    >
+                      <div>
+                        <h3 className="font-semibold text-ink-900">{order.customer_name}</h3>
+                        <p className="mt-0.5 text-xs text-ink-400">
+                          {formatDate(order.created_at)} · {order.customer_phone}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                          order.status === 'paid' ? 'bg-sage-100 text-sage-600 border-sage-200' :
+                          order.status === 'failed' ? 'bg-red-50 text-red-500 border-red-200' :
+                          'bg-brass-100 text-brass-700 border-brass-200'
+                        }`}>
+                          {order.status}
+                        </span>
+                        <span className="font-bold text-ink-900">
+                          {new Intl.NumberFormat('en-US').format(order.total_amount)} Toman
+                        </span>
+                      </div>
+                    </button>
+
+                    {expandedOrder === order.id && (
+                      <div className="mt-4 border-t border-ink-100 pt-4">
+                        <p className="text-sm text-ink-500">{order.customer_address}</p>
+                        {order.customer_email && (
+                          <p className="mt-1 text-sm text-ink-500">{order.customer_email}</p>
+                        )}
+                        {order.ref_id && (
+                          <p className="mt-2 text-xs text-sage-600">Ref: {order.ref_id}</p>
+                        )}
+                        {orderItems[order.id] && (
+                          <div className="mt-3 space-y-2">
+                            {orderItems[order.id].map((item) => (
+                              <div key={item.id} className="flex items-center justify-between rounded-lg bg-cream-200/50 px-3 py-2 text-sm">
+                                <span className="text-ink-700">{item.product_name} × {item.quantity}</span>
+                                <span className="font-semibold text-ink-900">
+                                  {new Intl.NumberFormat('en-US').format(item.unit_price * item.quantity)} Toman
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Notify requests tab */}
+        {activeTab === 'notify' && (
+          <div>
+            <h2 className="mb-6 font-serif text-2xl font-bold text-ink-900">
+              {notifyRequests.length} {t.admin.notifyRequests}
+            </h2>
+
+            {notifyLoading ? (
+              <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-brass-400" /></div>
+            ) : notifyRequests.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-ink-200 py-20 text-center">
+                <p className="text-ink-400">{t.admin.noNotifyRequests}</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {notifyRequests.map((nr) => (
+                  <div key={nr.id} className="flex items-center justify-between rounded-2xl border border-ink-100 bg-cream-50 p-4">
+                    <div>
+                      <p className="font-medium text-ink-900">{nr.email}</p>
+                      <p className="mt-0.5 text-xs text-ink-400">
+                        {notifyProductNames[nr.product_id] ?? 'Unknown product'} · {formatDate(nr.created_at)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggleNotifyHandled(nr)}
+                        className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                          nr.handled
+                            ? 'bg-sage-100 text-sage-600'
+                            : 'bg-brass-100 text-brass-700 hover:bg-brass-200'
+                        }`}
+                      >
+                        {nr.handled ? <Check className="h-3.5 w-3.5" /> : t.admin.markHandled}
+                      </button>
+                      <button
+                        onClick={() => deleteNotifyRequest(nr.id)}
+                        className="flex items-center justify-center rounded-full bg-red-50 p-2 text-red-600 transition-colors hover:bg-red-100"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -725,6 +1086,109 @@ function PostForm({ post, onSave, onCancel }: {
       <div className="mt-6 flex gap-3">
         <button
           onClick={() => onSave(form, post?.id)}
+          className="flex items-center gap-2 rounded-full bg-brass-500 px-6 py-3 text-sm font-medium text-ink-900 transition-colors hover:bg-brass-400"
+        >
+          <Save className="h-4 w-4" /> Save
+        </button>
+        <button
+          onClick={onCancel}
+          className="rounded-full border border-ink-200 px-6 py-3 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
+        >
+          Cancel
+        </button>
+      </div>
+    </ModalForm>
+  );
+}
+
+// --- Product Form ---
+function ProductForm({ product, categories, onSave, onCancel }: {
+  product: Product | null;
+  categories: Category[];
+  onSave: (prod: ProductInsert, id?: string) => void;
+  onCancel: () => void;
+}) {
+  const { t } = useLang();
+  const [form, setForm] = useState<ProductInsert>({
+    name_en: product?.name_en ?? '',
+    name_fa: product?.name_fa ?? '',
+    code: product?.code ?? '',
+    description_en: product?.description_en ?? '',
+    description_fa: product?.description_fa ?? '',
+    image_url: product?.image_url ?? '',
+    price: product?.price ?? 0,
+    stock: product?.stock ?? 0,
+    category_id: product?.category_id ?? null,
+    sort_order: product?.sort_order ?? 0,
+  });
+
+  return (
+    <ModalForm title={product ? t.admin.editProduct : t.admin.addProduct} onCancel={onCancel}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Name (EN)" value={form.name_en} onChange={(v) => setForm({ ...form, name_en: v })} />
+        <Field label="Name (FA)" value={form.name_fa} onChange={(v) => setForm({ ...form, name_fa: v })} />
+        <Field label="Code" value={form.code} onChange={(v) => setForm({ ...form, code: v })} />
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-ink-700">{t.admin.category}</label>
+          <select
+            value={form.category_id ?? ''}
+            onChange={(e) => setForm({ ...form, category_id: e.target.value || null })}
+            className="w-full rounded-xl border border-ink-200 px-4 py-3 text-ink-900 focus:border-brass-400 focus:outline-none focus:ring-2 focus:ring-brass-200"
+          >
+            <option value="">{t.admin.noCategory}</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name_en}</option>
+            ))}
+          </select>
+        </div>
+        <Field label={`${t.admin.price}`} value={String(form.price)} onChange={(v) => setForm({ ...form, price: parseInt(v) || 0 })} />
+        <Field label={t.admin.stock} value={String(form.stock)} onChange={(v) => setForm({ ...form, stock: parseInt(v) || 0 })} />
+        <Field label="Image URL" value={form.image_url} onChange={(v) => setForm({ ...form, image_url: v })} full />
+        <Field label="Description (EN)" value={form.description_en} onChange={(v) => setForm({ ...form, description_en: v })} full textarea />
+        <Field label="Description (FA)" value={form.description_fa} onChange={(v) => setForm({ ...form, description_fa: v })} full textarea />
+        <Field label="Sort Order" value={String(form.sort_order)} onChange={(v) => setForm({ ...form, sort_order: parseInt(v) || 0 })} />
+      </div>
+      <div className="mt-6 flex gap-3">
+        <button
+          onClick={() => onSave(form, product?.id)}
+          className="flex items-center gap-2 rounded-full bg-brass-500 px-6 py-3 text-sm font-medium text-ink-900 transition-colors hover:bg-brass-400"
+        >
+          <Save className="h-4 w-4" /> Save
+        </button>
+        <button
+          onClick={onCancel}
+          className="rounded-full border border-ink-200 px-6 py-3 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
+        >
+          Cancel
+        </button>
+      </div>
+    </ModalForm>
+  );
+}
+
+// --- Category Form ---
+function CategoryForm({ category, onSave, onCancel }: {
+  category: Category | null;
+  onSave: (cat: CategoryInsert, id?: string) => void;
+  onCancel: () => void;
+}) {
+  const { t } = useLang();
+  const [form, setForm] = useState<CategoryInsert>({
+    name_en: category?.name_en ?? '',
+    name_fa: category?.name_fa ?? '',
+    sort_order: category?.sort_order ?? 0,
+  });
+
+  return (
+    <ModalForm title={category ? t.admin.editCategory : t.admin.addCategory} onCancel={onCancel}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Name (EN)" value={form.name_en} onChange={(v) => setForm({ ...form, name_en: v })} />
+        <Field label="Name (FA)" value={form.name_fa} onChange={(v) => setForm({ ...form, name_fa: v })} />
+        <Field label="Sort Order" value={String(form.sort_order)} onChange={(v) => setForm({ ...form, sort_order: parseInt(v) || 0 })} />
+      </div>
+      <div className="mt-6 flex gap-3">
+        <button
+          onClick={() => onSave(form, category?.id)}
           className="flex items-center gap-2 rounded-full bg-brass-500 px-6 py-3 text-sm font-medium text-ink-900 transition-colors hover:bg-brass-400"
         >
           <Save className="h-4 w-4" /> Save

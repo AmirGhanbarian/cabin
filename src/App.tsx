@@ -16,6 +16,10 @@ import { MaterialsPage } from '@/components/MaterialsPage';
 import { IdeasPage } from '@/components/IdeasPage';
 import { BlogListPage } from '@/components/BlogListPage';
 import { BlogPostPage } from '@/components/BlogPostPage';
+import { ShopPage } from '@/components/ShopPage';
+import { CartPage } from '@/components/CartPage';
+import { CheckoutPage } from '@/components/CheckoutPage';
+import { PaymentResultPage } from '@/components/PaymentResultPage';
 import { parseHash, type Route } from '@/lib/router';
 
 function useHashRoute() {
@@ -79,6 +83,49 @@ function App() {
         <BlogPostPage slug={route.slug} />
         <Footer />
         <FloatingCTA />
+      </div>
+    );
+  }
+
+  if (route.name === 'shop') {
+    return (
+      <div className="min-h-screen bg-cream-100">
+        <Navbar />
+        <ShopPage />
+        <Footer />
+        <FloatingCTA />
+      </div>
+    );
+  }
+
+  if (route.name === 'cart') {
+    return (
+      <div className="min-h-screen bg-cream-100">
+        <Navbar />
+        <CartPage />
+        <Footer />
+        <FloatingCTA />
+      </div>
+    );
+  }
+
+  if (route.name === 'checkout') {
+    return (
+      <div className="min-h-screen bg-cream-100">
+        <Navbar />
+        <CheckoutPage />
+        <Footer />
+        <FloatingCTA />
+      </div>
+    );
+  }
+
+  if (route.name === 'payment-result') {
+    return (
+      <div className="min-h-screen bg-cream-100">
+        <Navbar />
+        <PaymentResultPage status={route.status} authority={route.authority} />
+        <Footer />
       </div>
     );
   }

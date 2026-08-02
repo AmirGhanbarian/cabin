@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Menu, X, Phone, Globe } from 'lucide-react';
+import { Menu, X, Phone, Globe, ShoppingBag } from 'lucide-react';
 import { useScrolled } from '@/hooks/useScrolled';
 import { useLang } from '@/lib/lang-context';
 import { navigate, type Route } from '@/lib/router';
+import { useCart } from '@/hooks/useCart';
 
 type NavLink = {
   label: string;
@@ -18,10 +19,13 @@ export function Navbar() {
   const isOnHome = !window.location.hash || window.location.hash === '#';
   const showLight = isOnHome && !scrolled;
 
+  const { totalCount } = useCart();
+
   const navLinks: NavLink[] = [
     { label: t.nav.collections, route: { name: 'home' }, hash: '#collections' },
     { label: t.nav.whyRuf, route: { name: 'home' }, hash: '#why-ruf' },
     { label: t.nav.process, route: { name: 'home' }, hash: '#process' },
+    { label: t.nav.shop, route: { name: 'shop' } },
     { label: t.nav.materials, route: { name: 'materials' } },
     { label: t.nav.ideas, route: { name: 'ideas' } },
     { label: t.nav.blog, route: { name: 'blog' } },
@@ -112,9 +116,27 @@ export function Navbar() {
             {lang === 'en' ? 'FA' : 'EN'}
           </button>
 
+          {/* Cart icon */}
+          <button
+            onClick={() => navigate({ name: 'cart' })}
+            className={`relative flex items-center justify-center rounded-full border p-2 transition-all ${
+              showLight
+                ? 'border-cream-200/30 text-cream-100 hover:bg-cream-50/10'
+                : 'border-ink-200 text-ink-600 hover:bg-ink-100'
+            }`}
+            aria-label="Cart"
+          >
+            <ShoppingBag className="h-5 w-5" />
+            {totalCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brass-500 px-1 text-xs font-bold text-ink-900">
+                {totalCount}
+              </span>
+            )}
+          </button>
+
           <a
             href="tel:+15550100"
-            className={`hidden items-center gap-2 text-sm font-medium transition-colors sm:flex ${phoneColor}`}
+            className={`hidden items-center gap-2 text-sm font-medium transition-colors lg:flex ${phoneColor}`}
           >
             <Phone className="h-4 w-4" />
             {t.nav.callUs}

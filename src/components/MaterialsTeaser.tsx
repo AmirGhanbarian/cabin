@@ -27,6 +27,7 @@ export function MaterialsTeaser() {
         eyebrow={t.materials.eyebrow}
         title={t.materials.title}
         description={t.materials.description}
+        tone="light"
       />
 
       <div className="mt-16 grid grid-cols-2 gap-4 md:grid-cols-3 lg:gap-6">

@@ -7,6 +7,7 @@ type SectionHeadingProps = {
   description?: string;
   align?: 'left' | 'center';
   className?: string;
+  tone?: 'dark' | 'light';
 };
 
 export function SectionHeading({
@@ -15,8 +16,11 @@ export function SectionHeading({
   description,
   align = 'center',
   className = '',
+  tone = 'dark',
 }: SectionHeadingProps) {
   const alignClass = align === 'center' ? 'mx-auto text-center items-center' : 'text-left items-start';
+  const titleColor = tone === 'light' ? 'text-cream-50' : 'text-ink-900';
+  const descColor = tone === 'light' ? 'text-cream-300' : 'text-ink-500';
 
   return (
     <Reveal className={`flex flex-col ${alignClass} max-w-2xl ${className}`}>
@@ -25,9 +29,9 @@ export function SectionHeading({
           {eyebrow}
         </span>
       )}
-      <h2 className="font-serif text-heading text-ink-900 text-balance">{title}</h2>
+      <h2 className={`font-serif text-heading ${titleColor} text-balance`}>{title}</h2>
       {description && (
-        <p className="mt-4 text-base leading-relaxed text-ink-500 text-balance">{description}</p>
+        <p className={`mt-4 text-base leading-relaxed ${descColor} text-balance`}>{description}</p>
       )}
     </Reveal>
   );

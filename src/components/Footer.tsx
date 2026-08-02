@@ -16,6 +16,7 @@ export function Footer() {
     { label: t.nav.collections, route: { name: 'home' }, hash: '#collections' },
     { label: t.nav.whyRuf, route: { name: 'home' }, hash: '#why-ruf' },
     { label: t.nav.process, route: { name: 'home' }, hash: '#process' },
+    { label: t.nav.shop, route: { name: 'shop' } },
     { label: t.nav.materials, route: { name: 'materials' } },
     { label: t.nav.ideas, route: { name: 'ideas' } },
     { label: t.nav.blog, route: { name: 'blog' } },
