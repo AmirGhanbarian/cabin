@@ -4,13 +4,13 @@ import {
   Plus, Trash2, Edit3, X, Check, Eye, EyeOff, Save, Package, FolderTree, ShoppingCart, Bell,
 } from 'lucide-react';
 import { supabase, type Lead, type Material, type Idea, type BlogPost, type MaterialInsert, type IdeaInsert, type BlogPostInsert, type Product, type ProductInsert, type Category, type CategoryInsert, type Order, type OrderItem, type NotifyRequest } from '@/lib/supabase';
-import { useLang } from '@/lib/lang-context';
+
 
 type AuthState = 'loading' | 'unauthenticated' | 'authenticated';
 type AdminTab = 'leads' | 'materials' | 'ideas' | 'blog' | 'products' | 'categories' | 'orders' | 'notify';
 
 export function Admin() {
-  const { t, lang, toggleLang } = useLang();
+
   const [authState, setAuthState] = useState<AuthState>('loading');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -183,10 +183,8 @@ export function Admin() {
     won: 'bg-ink-900 text-cream-100 border-ink-700',
   };
 
-  const formatDate = (iso: string) => {
-    const locale = lang === 'fa' ? 'fa-IR' : 'en-US';
-    return new Date(iso).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
-  };
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   // Material handlers
   const saveMaterial = async (mat: MaterialInsert, id?: string) => {
@@ -369,14 +367,14 @@ export function Admin() {
   }
 
   const tabs: { key: AdminTab; label: string; count?: number }[] = [
-    { key: 'leads', label: lang === 'fa' ? 'سرنخ‌ها' : 'Leads', count: leads.length },
-    { key: 'materials', label: t.materialsPage.title, count: materials.length },
-    { key: 'ideas', label: t.nav.ideas, count: ideas.length },
-    { key: 'blog', label: t.blogPage.title, count: posts.length },
-    { key: 'products', label: t.admin.products, count: products.length },
-    { key: 'categories', label: t.admin.categories, count: categories.length },
-    { key: 'orders', label: t.admin.orders, count: orders.length },
-    { key: 'notify', label: t.admin.notifyRequests, count: notifyRequests.length },
+    { key: 'leads', label: 'Leads', count: leads.length },
+    { key: 'materials', label: 'Materials', count: materials.length },
+    { key: 'ideas', label: 'Ideas', count: ideas.length },
+    { key: 'blog', label: 'Blog', count: posts.length },
+    { key: 'products', label: 'Products', count: products.length },
+    { key: 'categories', label: 'Categories', count: categories.length },
+    { key: 'orders', label: 'Orders', count: orders.length },
+    { key: 'notify', label: 'Notify Requests', count: notifyRequests.length },
   ];
 
   return (
@@ -388,12 +386,6 @@ export function Admin() {
             <span className="rounded-full bg-brass-100 px-3 py-1 text-xs font-medium text-brass-700">Admin</span>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={toggleLang}
-              className="rounded-full border border-ink-200 px-3 py-1.5 text-xs font-semibold text-ink-600 transition-colors hover:bg-ink-100"
-            >
-              {lang === 'en' ? 'FA' : 'EN'}
-            </button>
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 rounded-full border border-ink-200 px-4 py-2 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
@@ -712,13 +704,13 @@ export function Admin() {
           <div>
             <div className="mb-6 flex items-center justify-between">
               <h2 className="font-serif text-2xl font-bold text-ink-900">
-                {products.length} {t.admin.products}
+                {products.length} Products
               </h2>
               <button
                 onClick={() => { setEditingProduct(null); setShowProductForm(true); }}
                 className="flex items-center gap-2 rounded-full bg-brass-500 px-5 py-2.5 text-sm font-medium text-ink-900 transition-colors hover:bg-brass-400"
               >
-                <Plus className="h-4 w-4" /> {t.admin.addProduct}
+                <Plus className="h-4 w-4" /> Add Product
               </button>
             </div>
 
@@ -735,7 +727,7 @@ export function Admin() {
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-ink-400">{prod.code}</span>
                         <span className={`rounded-full px-2 py-0.5 text-xs ${prod.stock > 0 ? 'bg-sage-100 text-sage-600' : 'bg-red-50 text-red-500'}`}>
-                          {prod.stock > 0 ? `${t.admin.stock}: ${prod.stock}` : t.shop.outOfStock}
+                          {prod.stock > 0 ? `Stock: ${prod.stock}` : 'Out of stock'}
                         </span>
                       </div>
                       <h3 className="mt-2 font-serif font-bold text-ink-900">{prod.name_en}</h3>
@@ -778,13 +770,13 @@ export function Admin() {
           <div>
             <div className="mb-6 flex items-center justify-between">
               <h2 className="font-serif text-2xl font-bold text-ink-900">
-                {categories.length} {t.admin.categories}
+                {categories.length} Categories
               </h2>
               <button
                 onClick={() => { setEditingCategory(null); setShowCategoryForm(true); }}
                 className="flex items-center gap-2 rounded-full bg-brass-500 px-5 py-2.5 text-sm font-medium text-ink-900 transition-colors hover:bg-brass-400"
               >
-                <Plus className="h-4 w-4" /> {t.admin.addCategory}
+                <Plus className="h-4 w-4" /> Add Category
               </button>
             </div>
 
@@ -826,14 +818,14 @@ export function Admin() {
         {activeTab === 'orders' && (
           <div>
             <h2 className="mb-6 font-serif text-2xl font-bold text-ink-900">
-              {orders.length} {t.admin.orders}
+              {orders.length} Orders
             </h2>
 
             {ordersLoading ? (
               <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-brass-400" /></div>
             ) : orders.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-ink-200 py-20 text-center">
-                <p className="text-ink-400">{t.admin.noOrders}</p>
+                <p className="text-ink-400">No orders yet.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -904,14 +896,14 @@ export function Admin() {
         {activeTab === 'notify' && (
           <div>
             <h2 className="mb-6 font-serif text-2xl font-bold text-ink-900">
-              {notifyRequests.length} {t.admin.notifyRequests}
+              {notifyRequests.length} Notify Requests
             </h2>
 
             {notifyLoading ? (
               <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-brass-400" /></div>
             ) : notifyRequests.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-ink-200 py-20 text-center">
-                <p className="text-ink-400">{t.admin.noNotifyRequests}</p>
+                <p className="text-ink-400">No notify requests yet.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -932,7 +924,7 @@ export function Admin() {
                             : 'bg-brass-100 text-brass-700 hover:bg-brass-200'
                         }`}
                       >
-                        {nr.handled ? <Check className="h-3.5 w-3.5" /> : t.admin.markHandled}
+                        {nr.handled ? <Check className="h-3.5 w-3.5" /> : 'Mark handled'}
                       </button>
                       <button
                         onClick={() => deleteNotifyRequest(nr.id)}
@@ -1108,7 +1100,6 @@ function ProductForm({ product, categories, onSave, onCancel }: {
   onSave: (prod: ProductInsert, id?: string) => void;
   onCancel: () => void;
 }) {
-  const { t } = useLang();
   const [form, setForm] = useState<ProductInsert>({
     name_en: product?.name_en ?? '',
     name_fa: product?.name_fa ?? '',
@@ -1123,26 +1114,26 @@ function ProductForm({ product, categories, onSave, onCancel }: {
   });
 
   return (
-    <ModalForm title={product ? t.admin.editProduct : t.admin.addProduct} onCancel={onCancel}>
+    <ModalForm title={product ? 'Edit Product' : 'Add Product'} onCancel={onCancel}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Name (EN)" value={form.name_en} onChange={(v) => setForm({ ...form, name_en: v })} />
         <Field label="Name (FA)" value={form.name_fa} onChange={(v) => setForm({ ...form, name_fa: v })} />
         <Field label="Code" value={form.code} onChange={(v) => setForm({ ...form, code: v })} />
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-ink-700">{t.admin.category}</label>
+          <label className="mb-1.5 block text-sm font-medium text-ink-700">Category</label>
           <select
             value={form.category_id ?? ''}
             onChange={(e) => setForm({ ...form, category_id: e.target.value || null })}
             className="w-full rounded-xl border border-ink-200 px-4 py-3 text-ink-900 focus:border-brass-400 focus:outline-none focus:ring-2 focus:ring-brass-200"
           >
-            <option value="">{t.admin.noCategory}</option>
+            <option value="">No category</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>{c.name_en}</option>
             ))}
           </select>
         </div>
-        <Field label={`${t.admin.price}`} value={String(form.price)} onChange={(v) => setForm({ ...form, price: parseInt(v) || 0 })} />
-        <Field label={t.admin.stock} value={String(form.stock)} onChange={(v) => setForm({ ...form, stock: parseInt(v) || 0 })} />
+        <Field label="Price (Toman)" value={String(form.price)} onChange={(v) => setForm({ ...form, price: parseInt(v) || 0 })} />
+        <Field label="Stock" value={String(form.stock)} onChange={(v) => setForm({ ...form, stock: parseInt(v) || 0 })} />
         <Field label="Image URL" value={form.image_url} onChange={(v) => setForm({ ...form, image_url: v })} full />
         <Field label="Description (EN)" value={form.description_en} onChange={(v) => setForm({ ...form, description_en: v })} full textarea />
         <Field label="Description (FA)" value={form.description_fa} onChange={(v) => setForm({ ...form, description_fa: v })} full textarea />
@@ -1172,7 +1163,6 @@ function CategoryForm({ category, onSave, onCancel }: {
   onSave: (cat: CategoryInsert, id?: string) => void;
   onCancel: () => void;
 }) {
-  const { t } = useLang();
   const [form, setForm] = useState<CategoryInsert>({
     name_en: category?.name_en ?? '',
     name_fa: category?.name_fa ?? '',
@@ -1180,7 +1170,7 @@ function CategoryForm({ category, onSave, onCancel }: {
   });
 
   return (
-    <ModalForm title={category ? t.admin.editCategory : t.admin.addCategory} onCancel={onCancel}>
+    <ModalForm title={category ? 'Edit Category' : 'Add Category'} onCancel={onCancel}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Name (EN)" value={form.name_en} onChange={(v) => setForm({ ...form, name_en: v })} />
         <Field label="Name (FA)" value={form.name_fa} onChange={(v) => setForm({ ...form, name_fa: v })} />
