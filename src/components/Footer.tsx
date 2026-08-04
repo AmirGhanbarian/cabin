@@ -11,7 +11,7 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2">
               <span className="font-serif text-2xl font-bold text-cream-50">Kitchenchoob</span>
-              <span className="text-xs font-medium uppercase tracking-widest text-brass-400">{t.brandTagline}</span>
+              
             </div>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-cream-300/80">{t.footer.tagline}</p>
           </div>
