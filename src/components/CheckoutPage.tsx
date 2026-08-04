@@ -1,153 +1,293 @@
 import { useState } from 'react';
-import { ArrowLeft, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { useLang } from '@/lib/lang-context';
 import { navigate } from '@/lib/router';
 import { useCart } from '@/hooks/useCart';
-import { db } from '@/lib/db';
-import type { OrderInsert, OrderItemInsert } from '@/lib/db';
-import { DB_BACKEND, ZARINPAL_MERCHANT_ID, ZARINPAL_CALLBACK_URL } from '@/lib/db-config';
+import { supabase, type OrderInsert, type OrderItemInsert } from '@/lib/supabase';
 
 function formatPrice(price: number, lang: 'en' | 'fa') {
   const formatted = new Intl.NumberFormat(lang === 'fa' ? 'fa-IR' : 'en-US').format(price);
   return lang === 'fa' ? `${formatted} تومان` : `${formatted} Toman`;
 }
 
-type Status = 'form' | 'loading' | 'success' | 'error';
-
 export function CheckoutPage() {
-  const { t, lang, dir } = useLang();
-  const { items, total, clearCart } = useCart();
-  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '' });
-  const [status, setStatus] = useState<Status>('form');
-  const [orderId, setOrderId] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
+  const { t, lang } = useLang();
+  const { items, totalPrice, clearCart } = useCart();
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!form.name.trim() || !form.phone.trim() || !form.address.trim()) return;
-    setStatus('loading');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (items.length === 0) {
+      setError(t.checkout.emptyCartError);
+      return;
+    }
+    if (!name.trim()) {
+      setError(t.checkout.nameError);
+      return;
+    }
+    if (!phone.trim()) {
+      setError(t.checkout.phoneError);
+      return;
+    }
+    if (!address.trim()) {
+      setError(t.checkout.addressError);
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      const order: OrderInsert = {
-        customer_name: form.name.trim(),
-        customer_phone: form.phone.trim(),
-        customer_email: form.email.trim() || null,
-        customer_address: form.address.trim(),
-        total_amount: total,
+      // 1. Create the order
+      const orderInsert: OrderInsert = {
+        customer_name: name.trim(),
+        customer_phone: phone.trim(),
+        customer_email: email.trim() || null,
+        customer_address: address.trim(),
+        total_amount: totalPrice,
         status: 'pending',
         authority: null,
         ref_id: null,
       };
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert(orderInsert)
+        .select()
+        .single();
+
+      if (orderError || !order) {
+        setError(t.checkout.paymentError);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Create order items
       const orderItems: OrderItemInsert[] = items.map((item) => ({
-        order_id: '',
+        order_id: order.id,
         product_id: item.id,
-        product_name: item.name_en,
+        product_name: lang === 'en' ? item.name_en : item.name_fa,
         quantity: item.quantity,
         unit_price: item.price,
       }));
-      const newOrderId = await db.insertOrder(order, orderItems);
-      setOrderId(newOrderId);
-      clearCart();
-      setStatus('success');
-    } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : 'Failed to place order');
-      setStatus('error');
+
+      await supabase.from('order_items').insert(orderItems);
+
+      // 3. Call the Zarinpal edge function to create payment
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zarinpal?action=create`;
+      const res = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+
+      if (!res.ok) {
+        setError(t.checkout.paymentError);
+        setLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data.error || !data.gatewayUrl) {
+        setError(t.checkout.paymentError);
+        setLoading(false);
+        return;
+      }
+
+      // 4. Redirect to Zarinpal gateway
+      // Don't clear cart yet — only clear on payment success
+      window.location.href = data.gatewayUrl;
+    } catch {
+      setError(t.checkout.paymentError);
+      setLoading(false);
     }
   };
 
-  const canPayLive = DB_BACKEND === 'supabase' && ZARINPAL_MERCHANT_ID && ZARINPAL_CALLBACK_URL;
+  if (items.length === 0 && !loading) {
+    return (
+      <div className="pt-20 lg:pt-24">
+        <div className="bg-ink-900 section-pad">
+          <div className="container-px">
+            <button
+              onClick={() => navigate({ name: 'home' })}
+              className="mb-6 inline-flex items-center gap-2 text-sm text-cream-300 transition-colors hover:text-cream-50"
+            >
+              <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+              {t.shop.backToHome}
+            </button>
+            <h1 className="font-serif text-display text-cream-50 text-balance">
+              {t.checkout.title}
+            </h1>
+          </div>
+        </div>
+        <div className="section-pad">
+          <div className="container-px">
+            <div className="flex flex-col items-center py-20 text-center">
+              <p className="text-lg text-ink-500">{t.checkout.emptyCartError}</p>
+              <button
+                onClick={() => navigate({ name: 'shop' })}
+                className="mt-8 rounded-full bg-ink-900 px-8 py-3.5 text-sm font-medium text-cream-100 transition-colors hover:bg-ink-800"
+              >
+                {t.cart.browseShop}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="pt-20 lg:pt-24" dir={dir}>
-      <div className="bg-ink-900 py-12 lg:py-16">
+    <div className="pt-20 lg:pt-24">
+      {/* Header */}
+      <div className="bg-ink-900 section-pad">
         <div className="container-px">
-          <button onClick={() => navigate({ name: 'cart' })} className="mb-6 inline-flex items-center gap-2 text-sm text-cream-300 transition-colors hover:text-cream-50">
-            <ArrowLeft className="h-4 w-4 rtl:rotate-180" />{t.cart.title}
+          <button
+            onClick={() => navigate({ name: 'cart' })}
+            className="mb-6 inline-flex items-center gap-2 text-sm text-cream-300 transition-colors hover:text-cream-50"
+          >
+            <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+            {t.checkout.backToCart}
           </button>
-          <h1 className="font-serif text-display text-cream-50">{t.checkout.title}</h1>
-          <p className="mt-2 text-cream-300">{t.checkout.subtitle}</p>
+          <h1 className="font-serif text-display text-cream-50 text-balance">
+            {t.checkout.title}
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-cream-300">
+            {t.checkout.subtitle}
+          </p>
         </div>
       </div>
 
+      {/* Checkout form */}
       <div className="section-pad">
-        <div className="container-px max-w-2xl">
-          {status === 'success' ? (
-            <div className="rounded-3xl border border-sage-200 bg-sage-50 p-8 text-center">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-sage-100 text-sage-600">
-                <CheckCircle2 className="h-10 w-10" />
-              </div>
-              <h2 className="mt-6 font-serif text-2xl font-bold text-ink-900">{t.checkout.success}</h2>
-              <p className="mt-2 text-sm text-ink-500">{t.checkout.orderNumber}: {orderId.slice(0, 8)}</p>
-              <button onClick={() => navigate({ name: 'shop' })} className="mt-8 rounded-full bg-ink-900 px-8 py-3 text-sm font-medium text-cream-100 transition-colors hover:bg-ink-800">
-                {t.checkout.backToShop}
-              </button>
-            </div>
-          ) : items.length === 0 && status !== 'error' ? (
-            <div className="rounded-2xl border border-dashed border-ink-200 py-20 text-center">
-              <p className="text-ink-400">{t.cart.empty}</p>
-              <button onClick={() => navigate({ name: 'shop' })} className="mt-6 rounded-full bg-ink-900 px-6 py-3 text-sm font-medium text-cream-100 transition-colors hover:bg-ink-800">
-                {t.cart.continueShopping}
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="mb-8 rounded-2xl border border-ink-100 bg-cream-50 p-6">
-                <h3 className="mb-4 text-sm font-semibold uppercase tracking-widest text-ink-400">{t.cart.title}</h3>
-                <div className="space-y-3">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between text-sm">
-                      <span className="text-ink-700">{lang === 'en' ? item.name_en : item.name_fa} × {item.quantity}</span>
-                      <span className="font-semibold text-ink-900">{formatPrice(item.price * item.quantity, lang)}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 border-t border-ink-100 pt-4 flex items-center justify-between">
-                  <span className="text-sm text-ink-500">{t.cart.total}</span>
-                  <span className="font-serif text-xl font-bold text-ink-900">{formatPrice(total, lang)}</span>
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-ink-100 bg-cream-50 p-6 lg:p-8">
+        <div className="container-px">
+          <div className="mx-auto max-w-5xl grid gap-8 lg:grid-cols-5">
+            {/* Customer info */}
+            <div className="lg:col-span-3">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <h2 className="font-serif text-xl font-bold text-ink-900">
+                  {t.checkout.customerInfo}
+                </h2>
                 <div>
-                  <label htmlFor="co-name" className="mb-1.5 block text-sm font-medium text-ink-700">{t.checkout.name} *</label>
-                  <input id="co-name" type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required
-                    className="w-full rounded-xl border border-ink-200 px-4 py-3 text-ink-900 placeholder:text-ink-300 focus:border-brass-400 focus:outline-none focus:ring-2 focus:ring-brass-200" />
+                  <label htmlFor="co-name" className="mb-1.5 block text-sm font-medium text-ink-700">
+                    {t.checkout.fullName}
+                  </label>
+                  <input
+                    id="co-name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full rounded-xl border border-ink-200 bg-cream-50 px-4 py-3 text-ink-900 placeholder:text-ink-300 focus:border-brass-400 focus:outline-none focus:ring-2 focus:ring-brass-200"
+                  />
                 </div>
                 <div>
-                  <label htmlFor="co-phone" className="mb-1.5 block text-sm font-medium text-ink-700">{t.checkout.phone} *</label>
-                  <input id="co-phone" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required
-                    className="w-full rounded-xl border border-ink-200 px-4 py-3 text-ink-900 placeholder:text-ink-300 focus:border-brass-400 focus:outline-none focus:ring-2 focus:ring-brass-200" />
+                  <label htmlFor="co-phone" className="mb-1.5 block text-sm font-medium text-ink-700">
+                    {t.checkout.phone}
+                  </label>
+                  <input
+                    id="co-phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full rounded-xl border border-ink-200 bg-cream-50 px-4 py-3 text-ink-900 placeholder:text-ink-300 focus:border-brass-400 focus:outline-none focus:ring-2 focus:ring-brass-200"
+                  />
                 </div>
                 <div>
-                  <label htmlFor="co-email" className="mb-1.5 block text-sm font-medium text-ink-700">{t.checkout.email}</label>
-                  <input id="co-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full rounded-xl border border-ink-200 px-4 py-3 text-ink-900 placeholder:text-ink-300 focus:border-brass-400 focus:outline-none focus:ring-2 focus:ring-brass-200" />
+                  <label htmlFor="co-email" className="mb-1.5 block text-sm font-medium text-ink-700">
+                    {t.checkout.email}
+                  </label>
+                  <input
+                    id="co-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl border border-ink-200 bg-cream-50 px-4 py-3 text-ink-900 placeholder:text-ink-300 focus:border-brass-400 focus:outline-none focus:ring-2 focus:ring-brass-200"
+                  />
                 </div>
                 <div>
-                  <label htmlFor="co-address" className="mb-1.5 block text-sm font-medium text-ink-700">{t.checkout.address} *</label>
-                  <textarea id="co-address" rows={3} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} required
-                    className="w-full resize-none rounded-xl border border-ink-200 px-4 py-3 text-ink-900 placeholder:text-ink-300 focus:border-brass-400 focus:outline-none focus:ring-2 focus:ring-brass-200" />
+                  <label htmlFor="co-address" className="mb-1.5 block text-sm font-medium text-ink-700">
+                    {t.checkout.address}
+                  </label>
+                  <textarea
+                    id="co-address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    rows={3}
+                    className="w-full resize-none rounded-xl border border-ink-200 bg-cream-50 px-4 py-3 text-ink-900 placeholder:text-ink-300 focus:border-brass-400 focus:outline-none focus:ring-2 focus:ring-brass-200"
+                  />
                 </div>
 
-                {status === 'error' && (
+                {error && (
                   <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
-                    <AlertCircle className="h-4 w-4 shrink-0" />{errorMsg || t.contact.error}
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {error}
                   </div>
                 )}
 
-                {!canPayLive && (
-                  <p className="rounded-xl bg-brass-50 px-4 py-3 text-xs text-brass-700">
-                    {lang === 'en'
-                      ? 'You are in local database mode. Orders are saved locally. Live payment requires switching to the PostgreSQL backend.'
-                      : 'شما در حالت پایگاه داده محلی هستید. سفارش‌ها به صورت محلی ذخیره می‌شوند. پرداخت زنده نیاز به تغییر به پایگاه داده PostgreSQL دارد.'}
-                  </p>
-                )}
-
-                <button type="submit" disabled={status === 'loading'} className="flex w-full items-center justify-center gap-2 rounded-full bg-brass-500 px-8 py-4 text-base font-medium text-ink-900 shadow-lg shadow-brass-500/20 transition-all hover:scale-[1.01] hover:bg-brass-400 disabled:opacity-60 disabled:hover:scale-100">
-                  {status === 'loading' ? <><Loader2 className="h-5 w-5 animate-spin" />{t.checkout.placing}</> : t.checkout.submit}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-ink-900 px-8 py-4 text-base font-medium text-cream-100 transition-all hover:bg-ink-800 disabled:opacity-60"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      {t.checkout.processing}
+                    </>
+                  ) : (
+                    t.checkout.payNow
+                  )}
                 </button>
               </form>
-            </>
-          )}
+            </div>
+
+            {/* Order summary */}
+            <div className="lg:col-span-2">
+              <div className="sticky top-24 rounded-2xl border border-ink-100 bg-cream-50 p-6">
+                <h2 className="font-serif text-xl font-bold text-ink-900">
+                  {t.checkout.orderSummary}
+                </h2>
+                <div className="mt-4 space-y-3">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3">
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg">
+                        <img src={item.image_url} alt="" className="h-full w-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-sm font-medium text-ink-900">
+                          {lang === 'en' ? item.name_en : item.name_fa}
+                        </p>
+                        <p className="text-xs text-ink-400">
+                          {item.quantity} × {formatPrice(item.price, lang)}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold text-ink-700">
+                        {formatPrice(item.price * item.quantity, lang)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-5 border-t border-ink-100 pt-5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-base font-medium text-ink-600">{t.cart.subtotal}</span>
+                    <span className="font-serif text-xl font-bold text-ink-900">
+                      {formatPrice(totalPrice, lang)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
