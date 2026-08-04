@@ -9,7 +9,7 @@ const en: Dict = {
   hero: {
     eyebrow: 'Custom Cabinetry',
     title: 'Crafted cabinetry for spaces that matter',
-    subtitle: 'RUF Cabinetry designs and builds bespoke MDF cabinetry — from kitchen islands to walk-in closets — with meticulous attention to material, color, and craft.',
+    subtitle: 'Kitchenchoob designs and builds bespoke MDF cabinetry — from kitchen islands to walk-in closets — with meticulous attention to material, color, and craft.',
     cta: 'Explore materials',
     secondaryCta: 'Browse ideas',
   },
@@ -117,7 +117,7 @@ const fa: Dict = {
   hero: {
     eyebrow: 'کابینت سفارشی',
     title: 'کابینت‌سازی هنری برای فضاهایی که مهمند',
-    subtitle: 'RUF Cabinetry طراحی و ساخت کابینت ام دی اف سفارشی — از جزیره آشپزخانه تا کلوزت باز — با توجه دقیق به متریال، رنگ و کیفیت ساخت.',
+    subtitle: 'Kitchenchoob طراحی و ساخت کابینت ام دی اف سفارشی — از جزیره آشپزخانه تا کلوزت باز — با توجه دقیق به متریال، رنگ و کیفیت ساخت.',
     cta: 'مشاهده متریال',
     secondaryCta: 'مرور ایده‌ها',
   },

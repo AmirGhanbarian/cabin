@@ -41,10 +41,9 @@ export function Nav() {
       <div className="container-px flex h-16 items-center justify-between lg:h-20">
         <button onClick={() => go('home')} className="flex items-center gap-2">
           <span className={`font-serif text-xl font-bold lg:text-2xl ${scrolled || route.name !== 'home' ? 'text-ink-900' : 'text-cream-50'}`}>
-            RUF
+            Kitchenchoob
           </span>
           <span className={`text-xs font-medium uppercase tracking-widest ${scrolled || route.name !== 'home' ? 'text-brass-600' : 'text-brass-400'}`}>
-            Cabinetry
           </span>
         </button>
 

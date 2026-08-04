@@ -219,13 +219,13 @@ export function Admin() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brass-500/10 text-brass-500">
               <Lock className="h-8 w-8" />
             </div>
-            <h1 className="mt-6 font-serif text-2xl font-bold text-ink-900">RUF Admin</h1>
+            <h1 className="mt-6 font-serif text-2xl font-bold text-ink-900">Kitchenchoob Admin</h1>
             <p className="mt-2 text-sm text-ink-400">Sign in to manage your site</p>
           </div>
           <form onSubmit={handleLogin} className="mt-8 space-y-5">
             <div>
               <label htmlFor="admin-email" className="mb-1.5 block text-sm font-medium text-ink-700">Email</label>
-              <input id="admin-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@rufcabinetry.com" required
+              <input id="admin-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@kitchenchoob.com" required
                 className="w-full rounded-xl border border-ink-200 px-4 py-3 text-ink-900 placeholder:text-ink-300 focus:border-brass-400 focus:outline-none focus:ring-2 focus:ring-brass-200" />
             </div>
             <div>
@@ -266,7 +266,7 @@ export function Admin() {
       <header className="sticky top-0 z-10 border-b border-ink-100 bg-cream-50/90 backdrop-blur-md">
         <div className="container-px flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="font-serif text-xl font-bold text-ink-900">RUF</span>
+            <span className="font-serif text-xl font-bold text-ink-900">Kitchenchoob</span>
             <span className="rounded-full bg-brass-100 px-3 py-1 text-xs font-medium text-brass-700">Admin</span>
           </div>
           <button onClick={handleLogout} className="flex items-center gap-2 rounded-full border border-ink-200 px-4 py-2 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100">

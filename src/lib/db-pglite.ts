@@ -18,7 +18,7 @@ let dbPromise: Promise<PGlite> | null = null;
 async function getDb(): Promise<PGlite> {
   if (!dbPromise) {
     dbPromise = (async () => {
-      const db = new PGlite('idb://ruf-cabinetry');
+      const db = new PGlite('idb://kitchenchoob');
       await db.exec(SCHEMA_SQL);
       await seedIfEmpty(db);
       return db;
