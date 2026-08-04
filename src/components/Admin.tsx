@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Lock, Loader2, AlertCircle, LogOut, Phone, Mail, Heart, Plus, Trash2, CreditCard as Edit3, X, Check, Eye, EyeOff, Save } from 'lucide-react';
+import {
+  Lock, Loader2, AlertCircle, LogOut, Phone, Mail, Heart,
+  Plus, Trash2, Edit3, X, Check, Eye, EyeOff, Save,
+} from 'lucide-react';
 import { db } from '@/lib/db';
 import type {
   Lead, Material, Idea, BlogPost, MaterialInsert, IdeaInsert, BlogPostInsert,
