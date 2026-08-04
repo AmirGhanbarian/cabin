@@ -1,24 +1,34 @@
-import type { ReactNode } from 'react';
-import { useReveal } from '@/hooks/useReveal';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-type RevealProps = {
-  children: ReactNode;
-  className?: string;
-  delay?: number;
-  as?: 'div' | 'section' | 'article' | 'li' | 'span';
-};
+export function Reveal({ children, delay = 0, className = '' }: { children: ReactNode; delay?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
 
-export function Reveal({ children, className = '', delay = 0, as = 'div' }: RevealProps) {
-  const { ref, visible } = useReveal<HTMLDivElement>();
-  const Tag = as;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <Tag
-      ref={ref as never}
-      className={`reveal ${visible ? 'is-visible' : ''} ${className}`}
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${className} ${
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+      }`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
-    </Tag>
+    </div>
   );
 }

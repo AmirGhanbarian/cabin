@@ -1,153 +1,64 @@
-import { useEffect, useState } from 'react';
-import { Navbar } from '@/components/Navbar';
-import { Hero } from '@/components/Hero';
-import { Collections } from '@/components/Collections';
-import { WhyRUF } from '@/components/WhyRUF';
-import { Process } from '@/components/Process';
-import { MaterialsTeaser } from '@/components/MaterialsTeaser';
-import { IdeasSection } from '@/components/IdeasSection';
-import { Testimonials } from '@/components/Testimonials';
-import { FAQ } from '@/components/FAQ';
-import { Contact } from '@/components/Contact';
+import { useEffect } from 'react';
+import { useLang } from '@/lib/lang-context';
+import { useRouter } from '@/lib/router';
+import { Nav } from '@/components/Nav';
 import { Footer } from '@/components/Footer';
-import { FloatingCTA } from '@/components/FloatingCTA';
-import { Admin } from '@/components/Admin';
+import { Hero, MaterialsTeaser } from '@/components/Hero';
 import { MaterialsPage } from '@/components/MaterialsPage';
 import { IdeasPage } from '@/components/IdeasPage';
-import { BlogListPage } from '@/components/BlogListPage';
-import { BlogPostPage } from '@/components/BlogPostPage';
+import { BlogListPage, BlogPostPage } from '@/components/BlogPages';
 import { ShopPage } from '@/components/ShopPage';
 import { CartPage } from '@/components/CartPage';
 import { CheckoutPage } from '@/components/CheckoutPage';
+import { ContactPage } from '@/components/ContactPage';
+import { Admin } from '@/components/Admin';
 import { PaymentResultPage } from '@/components/PaymentResultPage';
-import { parseHash, type Route } from '@/lib/router';
 
-function useHashRoute() {
-  const [hash, setHash] = useState(window.location.hash);
+export default function App() {
+  const { route } = useRouter();
+  const { dir } = useLang();
+
   useEffect(() => {
-    const onHashChange = () => {
-      setHash(window.location.hash);
-      window.scrollTo(0, 0);
-    };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
-  return hash;
-}
+    document.documentElement.dir = dir;
+    document.documentElement.lang = dir === 'rtl' ? 'fa' : 'en';
+  }, [dir]);
 
-function App() {
-  const hash = useHashRoute();
-  const route: Route = parseHash(hash);
+  const isAdmin = route.name === 'admin';
+  const isPaymentResult = route.name === 'payment-result';
 
-  if (route.name === 'admin') {
-    return <Admin />;
+  let content;
+  switch (route.name) {
+    case 'home':
+      content = (
+        <>
+          <Hero />
+          <MaterialsTeaser />
+          <ContactPage />
+        </>
+      );
+      break;
+    case 'materials': content = <MaterialsPage />; break;
+    case 'ideas': content = <IdeasPage />; break;
+    case 'blog': content = <BlogListPage />; break;
+    case 'blog-post': content = <BlogPostPage slug={route.params?.slug ?? ''} />; break;
+    case 'shop': content = <ShopPage />; break;
+    case 'cart': content = <CartPage />; break;
+    case 'checkout': content = <CheckoutPage />; break;
+    case 'contact': content = <ContactPage />; break;
+    case 'admin': content = <Admin />; break;
+    case 'payment-result': content = <PaymentResultPage />; break;
+    default: content = <Hero />; break;
   }
 
-  if (route.name === 'materials') {
-    return (
-      <div className="min-h-screen bg-cream-100">
-        <Navbar />
-        <MaterialsPage />
-        <Footer />
-        <FloatingCTA />
-      </div>
-    );
-  }
-
-  if (route.name === 'ideas') {
-    return (
-      <div className="min-h-screen bg-cream-100">
-        <Navbar />
-        <IdeasPage />
-        <Footer />
-        <FloatingCTA />
-      </div>
-    );
-  }
-
-  if (route.name === 'blog') {
-    return (
-      <div className="min-h-screen bg-cream-100">
-        <Navbar />
-        <BlogListPage />
-        <Footer />
-        <FloatingCTA />
-      </div>
-    );
-  }
-
-  if (route.name === 'blog-post') {
-    return (
-      <div className="min-h-screen bg-cream-100">
-        <Navbar />
-        <BlogPostPage slug={route.slug} />
-        <Footer />
-        <FloatingCTA />
-      </div>
-    );
-  }
-
-  if (route.name === 'shop') {
-    return (
-      <div className="min-h-screen bg-cream-100">
-        <Navbar />
-        <ShopPage />
-        <Footer />
-        <FloatingCTA />
-      </div>
-    );
-  }
-
-  if (route.name === 'cart') {
-    return (
-      <div className="min-h-screen bg-cream-100">
-        <Navbar />
-        <CartPage />
-        <Footer />
-        <FloatingCTA />
-      </div>
-    );
-  }
-
-  if (route.name === 'checkout') {
-    return (
-      <div className="min-h-screen bg-cream-100">
-        <Navbar />
-        <CheckoutPage />
-        <Footer />
-        <FloatingCTA />
-      </div>
-    );
-  }
-
-  if (route.name === 'payment-result') {
-    return (
-      <div className="min-h-screen bg-cream-100">
-        <Navbar />
-        <PaymentResultPage status={route.status} authority={route.authority} />
-        <Footer />
-      </div>
-    );
+  if (isAdmin || isPaymentResult) {
+    return <>{content}</>;
   }
 
   return (
-    <div className="min-h-screen bg-cream-100">
-      <Navbar />
-      <main>
-        <Hero />
-        <Collections />
-        <WhyRUF />
-        <Process />
-        <MaterialsTeaser />
-        <IdeasSection />
-        <Testimonials />
-        <FAQ />
-        <Contact />
-      </main>
+    <div dir={dir}>
+      <Nav />
+      <main>{content}</main>
       <Footer />
-      <FloatingCTA />
     </div>
   );
 }
-
-export default App;
