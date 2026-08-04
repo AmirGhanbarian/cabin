@@ -6,6 +6,7 @@ type Dict = Record<string, any>;
 
 const en: Dict = {
   nav: { home: 'Home', materials: 'Materials', ideas: 'Ideas', blog: 'Blog', shop: 'Shop', contact: 'Contact', admin: 'Admin' },
+  brandTagline: 'Cabinetry',
   hero: {
     eyebrow: 'Custom Cabinetry',
     title: 'Crafted cabinetry for spaces that matter',
@@ -114,6 +115,7 @@ const en: Dict = {
 
 const fa: Dict = {
   nav: { home: 'خانه', materials: 'متریال', ideas: 'ایده‌ها', blog: 'وبلاگ', shop: 'فروشگاه', contact: 'تماس', admin: 'مدیریت' },
+  brandTagline: 'کابینت',
   hero: {
     eyebrow: 'کابینت سفارشی',
     title: 'کابینت‌سازی هنری برای فضاهایی که مهمند',

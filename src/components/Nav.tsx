@@ -44,6 +44,7 @@ export function Nav() {
             Kitchenchoob
           </span>
           <span className={`text-xs font-medium uppercase tracking-widest ${scrolled || route.name !== 'home' ? 'text-brass-600' : 'text-brass-400'}`}>
+            {t.brandTagline}
           </span>
         </button>
 
