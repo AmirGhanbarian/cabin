@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 
-const STORAGE_KEY = 'kitchenchoob-cart';
+const STORAGE_KEY = 'ruf-cart';
 
 export type CartItem = {
   id: string;

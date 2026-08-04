@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-const STORAGE_KEY = 'kitchenchoob-liked-ideas';
+const STORAGE_KEY = 'ruf-liked-ideas';
 
 export function useLikedIdeas() {
   const [likedIds, setLikedIds] = useState<string[]>(() => {

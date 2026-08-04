@@ -75,13 +75,13 @@ export function ContactPage() {
                   </div>
                 </a>
 
-                <a href="mailto:hello@kitchenchoob.com" className="group flex items-center gap-4 rounded-2xl border border-cream-200/10 bg-cream-50/5 p-5 transition-all hover:border-brass-400/40 hover:bg-cream-50/10">
+                <a href="mailto:hello@rufcabinetry.com" className="group flex items-center gap-4 rounded-2xl border border-cream-200/10 bg-cream-50/5 p-5 transition-all hover:border-brass-400/40 hover:bg-cream-50/10">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brass-500/20 text-brass-400 transition-colors group-hover:bg-brass-500 group-hover:text-ink-900">
                     <Mail className="h-5 w-5" />
                   </div>
                   <div>
                     <div className="text-sm text-cream-300">{t.contact.emailUs}</div>
-                    <div className="font-serif text-lg font-semibold text-cream-50">hello@kitchenchoob.com</div>
+                    <div className="font-serif text-lg font-semibold text-cream-50">hello@rufcabinetry.com</div>
                   </div>
                 </a>
 

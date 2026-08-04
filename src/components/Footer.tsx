@@ -10,8 +10,8 @@ export function Footer() {
         <div className="grid gap-12 md:grid-cols-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-serif text-2xl font-bold text-cream-50">Kitchenchoob</span>
-              
+              <span className="font-serif text-2xl font-bold text-cream-50">RUF</span>
+              <span className="text-xs font-medium uppercase tracking-widest text-brass-400">Cabinetry</span>
             </div>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-cream-300/80">{t.footer.tagline}</p>
           </div>
@@ -32,8 +32,8 @@ export function Footer() {
               <a href="tel:+15550100" className="flex items-center gap-2 text-cream-300/80 hover:text-cream-50">
                 <Phone className="h-4 w-4 text-brass-400" /> +1 555-0100
               </a>
-              <a href="mailto:hello@kitchenchoob.com" className="flex items-center gap-2 text-cream-300/80 hover:text-cream-50">
-                <Mail className="h-4 w-4 text-brass-400" /> hello@kitchenchoob.com
+              <a href="mailto:hello@rufcabinetry.com" className="flex items-center gap-2 text-cream-300/80 hover:text-cream-50">
+                <Mail className="h-4 w-4 text-brass-400" /> hello@rufcabinetry.com
               </a>
               <div className="flex items-center gap-2 text-cream-300/80">
                 <MapPin className="h-4 w-4 text-brass-400" /> {t.contact.serviceAreaValue}
@@ -43,7 +43,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 border-t border-cream-200/10 pt-6 text-center text-xs text-cream-300/60">
-          © {new Date().getFullYear()} Kitchenchoob. {t.footer.rights}
+          © {new Date().getFullYear()} RUF Cabinetry. {t.footer.rights}
         </div>
       </div>
     </footer>

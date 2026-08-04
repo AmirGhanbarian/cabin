@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
         merchant_id,
         amount,
         callback_url,
-        description: description || "Kitchenchoob order",
+        description: description || "RUF Cabinetry order",
       }),
     });
 
